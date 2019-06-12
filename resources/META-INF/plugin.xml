@@ -1,0 +1,36 @@
+<idea-plugin>
+  <id>com.hejiafu</id>
+  <name>convertPlugin</name>
+  <version>1.0</version>
+  <vendor email="hejiafu@meituan.com" url="http://www.xxx.com">MyCompany</vendor>
+
+  <description><![CDATA[
+      with 2 class From(mark as A) and To(mark as B), get all common properties, copy value from A to B
+    ]]></description>
+
+  <change-notes><![CDATA[
+      first edition to copy value from class A to class B
+    ]]>
+  </change-notes>
+
+  <!-- please see http://www.jetbrains.org/intellij/sdk/docs/basics/getting_started/build_number_ranges.html for description -->
+  <idea-version since-build="173.0"/>
+
+  <!-- please see http://www.jetbrains.org/intellij/sdk/docs/basics/getting_started/plugin_compatibility.html
+       on how to target different products -->
+  <!-- uncomment to enable plugin in all products
+  <depends>com.intellij.modules.lang</depends>
+  -->
+
+  <extensions defaultExtensionNs="com.intellij">
+    <!-- Add your extensions here -->
+  </extensions>
+
+  <actions>
+    <!-- Add your actions here -->
+    <action id="GetAndSet.CopyProperty" class="com.hzz.CopyProperty" text="generateCopyProperty">
+      <add-to-group group-id="EditMenu" anchor="first"/>
+    </action>
+  </actions>
+
+</idea-plugin>
