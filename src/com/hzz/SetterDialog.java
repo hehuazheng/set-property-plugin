@@ -2,9 +2,12 @@ package com.hzz;
 
 import com.intellij.openapi.project.Project;
 import com.intellij.openapi.ui.DialogWrapper;
+import com.intellij.ui.components.JBList;
 import org.jetbrains.annotations.Nullable;
 
 import javax.swing.*;
+import javax.swing.event.DocumentEvent;
+import javax.swing.event.DocumentListener;
 
 /**
  * @author: hezz
@@ -14,10 +17,13 @@ public class SetterDialog extends DialogWrapper  {
         super(project, canBeParent);
         init();
         setTitle("test Dialog");
+        tf1.getDocument().addDocumentListener(new MyDocumentListener(tf1, jlist));
+        tf2.getDocument().addDocumentListener(new MyDocumentListener(tf2, jlist));
     }
 
-    private JTextField tf1 = new JTextField(20);
-    private JTextField tf2 = new JTextField(20);
+    private final JTextField tf1 = new JTextField(20);
+    private final JTextField tf2 = new JTextField(20);
+    private final JBList jlist = new JBList();
 
     private String text1;
     private String text2;
@@ -41,10 +47,41 @@ public class SetterDialog extends DialogWrapper  {
 
         b1.add(r2);
 
+        b1.add(jlist);
+
         p.add(b1);
         return p;
     }
 
+    static class MyDocumentListener implements DocumentListener {
+        private JTextField tf;
+        private JBList jlist;
+
+        public MyDocumentListener(JTextField tf, JBList jlist) {
+            this.tf = tf;
+            this.jlist = jlist;
+        }
+
+        @Override
+        public void insertUpdate(DocumentEvent e) {
+            setData(tf.getText());
+        }
+
+        @Override
+        public void removeUpdate(DocumentEvent e) {
+            setData(tf.getText());
+        }
+
+        @Override
+        public void changedUpdate(DocumentEvent e) {
+            setData(tf.getText());
+        }
+
+        protected void setData(String s) {
+            jlist.setListData(new String[]{s});
+            System.out.println(s);
+        }
+    }
 
     @Override
     protected void doOKAction() {
