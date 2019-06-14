@@ -8,18 +8,56 @@ import org.jetbrains.annotations.Nullable;
 import javax.swing.*;
 import javax.swing.event.DocumentEvent;
 import javax.swing.event.DocumentListener;
+import java.awt.*;
+import java.awt.event.FocusAdapter;
+import java.awt.event.FocusEvent;
+import java.awt.event.MouseAdapter;
+import java.awt.event.MouseEvent;
 
 /**
  * @author: hezz
  */
-public class SetterDialog extends DialogWrapper  {
-    protected SetterDialog(@Nullable Project project, boolean canBeParent) {
+public class SetterDialog extends DialogWrapper {
+    protected SetterDialog(@Nullable Project project, boolean canBeParent, GenerateData generateData) {
         super(project, canBeParent);
         init();
-        setTitle("test Dialog");
-        tf1.getDocument().addDocumentListener(new MyDocumentListener(tf1, jlist));
-        tf2.getDocument().addDocumentListener(new MyDocumentListener(tf2, jlist));
+        this.generateData = generateData;
+        setTitle("convert Dialog");
+        tf1.addFocusListener(new FocusAdapter() {
+            @Override
+            public void focusGained(FocusEvent e) {
+                fromTextFieldActivated = true;
+            }
+        });
+        tf2.addFocusListener(new FocusAdapter() {
+            @Override
+            public void focusGained(FocusEvent e) {
+                fromTextFieldActivated = false;
+            }
+        });
+        tf1.getDocument().addDocumentListener(new MyDocumentListener(tf1));
+        tf2.getDocument().addDocumentListener(new MyDocumentListener(tf2));
+
+        jlist.setVisibleRowCount(10);
+        jlist.setPreferredSize(new Dimension(200, 100));
+        jlist.setListData(new String[]{"a","b","c","d"});
+        jlist.addMouseListener(new MouseAdapter() {
+            @Override
+            public void mouseClicked(MouseEvent e) {
+                if (e.getClickCount() == 2) {
+                    JBList source = (JBList) e.getSource();
+                    if (fromTextFieldActivated) {
+                        tf1.setText(source.getSelectedValue().toString());
+                    } else {
+                        tf2.setText(source.getSelectedValue().toString());
+                    }
+                }
+            }
+        });
     }
+
+    private GenerateData generateData;
+    private boolean fromTextFieldActivated = true;
 
     private final JTextField tf1 = new JTextField(20);
     private final JTextField tf2 = new JTextField(20);
@@ -47,19 +85,20 @@ public class SetterDialog extends DialogWrapper  {
 
         b1.add(r2);
 
+        JLabel label3 = new JLabel("Classes");
+        b1.add(label3);
+
         b1.add(jlist);
 
         p.add(b1);
         return p;
     }
 
-    static class MyDocumentListener implements DocumentListener {
+    class MyDocumentListener implements DocumentListener {
         private JTextField tf;
-        private JBList jlist;
 
-        public MyDocumentListener(JTextField tf, JBList jlist) {
+        public MyDocumentListener(JTextField tf) {
             this.tf = tf;
-            this.jlist = jlist;
         }
 
         @Override
@@ -78,8 +117,11 @@ public class SetterDialog extends DialogWrapper  {
         }
 
         protected void setData(String s) {
-            jlist.setListData(new String[]{s});
-            System.out.println(s);
+            if(fromTextFieldActivated) {
+                jlist.setListData(generateData.getData(s));
+            } else {
+                jlist.setListData(generateData.getData(s));
+            }
         }
     }
 

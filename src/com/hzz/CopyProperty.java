@@ -15,11 +15,14 @@ import com.intellij.psi.PsiField;
 import com.intellij.psi.PsiFile;
 import com.intellij.psi.PsiMethod;
 import com.intellij.psi.search.GlobalSearchScope;
+import com.intellij.psi.search.PsiShortNamesCache;
 import com.intellij.psi.util.PsiTreeUtil;
 import org.apache.commons.lang.StringUtils;
 import org.apache.commons.lang.exception.ExceptionUtils;
 
+import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.List;
 import java.util.Map;
 import java.util.stream.Collectors;
 
@@ -31,7 +34,7 @@ public class CopyProperty extends AnAction {
     @Override
     public void actionPerformed(AnActionEvent e) {
         Project project = e.getData(PlatformDataKeys.PROJECT);
-        SetterDialog sd = new SetterDialog(project, false);
+        SetterDialog sd = new SetterDialog(project, false, new MyGenerateData(project));
         sd.show();
         if (sd.isOK()) {
             PsiClass psiClass = getPsiMethodFromContext(e);
@@ -44,6 +47,55 @@ public class CopyProperty extends AnAction {
                 }
                 generateConvertMethod(psiClass, sourceCode);
             }
+        }
+    }
+
+    static class MyGenerateData implements GenerateData {
+        private Project project;
+
+        public MyGenerateData(Project project) {
+            this.project = project;
+        }
+
+        @Override
+        public String[] getData(String from) {
+            if (from.indexOf('.') > 0) {
+                PsiClass[] classes = JavaPsiFacade.getInstance(project).findClasses(from, GlobalSearchScope.allScope(project));
+                if (classes.length > 0) {
+                    String[] arr = new String[classes.length];
+                    for (int i = 0; i < classes.length; i++) {
+                        arr[i] = classes[i].getQualifiedName();
+                    }
+                    return arr;
+                }
+            } else {
+                PsiClass[] classes = PsiShortNamesCache.getInstance(project).getClassesByName(from, GlobalSearchScope.allScope(project));
+                if (classes.length > 0) {
+                    String[] arr = new String[classes.length + 1];
+                    for (int i = 0; i < classes.length; i++) {
+                        arr[i] = classes[i].getQualifiedName();
+                    }
+                    arr[classes.length] = "from short name";
+                    return arr;
+                }
+            }
+
+            List<String> list = new ArrayList<>();
+            String[] allClasses = PsiShortNamesCache.getInstance(project).getAllClassNames();
+            for (String s : allClasses) {
+                if (s.startsWith(from)) {
+                    list.add(s);
+                    if (list.size() > 5) {
+                        break;
+                    }
+                }
+            }
+            String[] arr = new String[list.size() + 1];
+            for (int i = 0; i < list.size(); i++) {
+                arr[i] = list.get(i);
+            }
+            arr[list.size()] = "search";
+            return arr;
         }
     }
 

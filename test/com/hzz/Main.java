@@ -5,16 +5,19 @@ import com.intellij.ui.components.JBList;
 import javax.swing.*;
 import javax.swing.event.DocumentEvent;
 import javax.swing.event.DocumentListener;
-import javax.swing.event.ListSelectionEvent;
-import javax.swing.event.ListSelectionListener;
 import java.awt.*;
+import java.awt.event.FocusAdapter;
+import java.awt.event.FocusEvent;
+import java.awt.event.FocusListener;
+import java.awt.event.MouseAdapter;
+import java.awt.event.MouseEvent;
 
 /**
  * @author: hezz
  */
 public class Main {
     public static void main(String[] args) {
-        javax.swing.SwingUtilities.invokeLater(new Runnable() {
+        SwingUtilities.invokeLater(new Runnable() {
             public void run() {
                 new Main().createAndShowGUI();
             }
@@ -29,12 +32,39 @@ public class Main {
         jlist.setPreferredSize(new Dimension(200, 100));
         jlist.setFixedCellHeight(10);
         jlist.setFixedCellWidth(200);
-        jlist.addListSelectionListener(new ListSelectionListener() {
+        // 响应鼠标双击
+        jlist.addMouseListener(new MouseAdapter() {
             @Override
-            public void valueChanged(ListSelectionEvent e) {
+            public void mouseClicked(MouseEvent e) {
+                if(e.getClickCount() == 2) {
+                    JBList source = (JBList)e.getSource();
+                    System.out.println(source.getSelectedValue());
+                }
+            }
+        });
+//        jlist.addListSelectionListener(new ListSelectionListener() {
+//            @Override
+//            public void valueChanged(ListSelectionEvent e) {
+//
+//                JBList source = (JBList)e.getSource();
+//                System.out.println(source.getSelectedValue());
+//            }
+//        });
+        tf1.addFocusListener(new FocusAdapter() {
+            @Override
+            public void focusGained(FocusEvent e) {
+                super.focusGained(e);
+            }
+        });
+        tf1.addFocusListener(new FocusListener() {
+            @Override
+            public void focusGained(FocusEvent e) {
+                System.out.println("tf1 clicked");
+            }
 
-                JBList source = (JBList)e.getSource();
-                System.out.println(source.getSelectedValue());
+            @Override
+            public void focusLost(FocusEvent e) {
+
             }
         });
         tf1.getDocument().addDocumentListener(new DocumentListener() {
