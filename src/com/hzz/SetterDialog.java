@@ -13,7 +13,7 @@ public class SetterDialog extends DialogWrapper  {
     protected SetterDialog(@Nullable Project project, boolean canBeParent) {
         super(project, canBeParent);
         init();
-        setTitle("test Dialog");
+        setTitle("GenerateConvertCode");
     }
 
     private JTextField tf1 = new JTextField(20);
