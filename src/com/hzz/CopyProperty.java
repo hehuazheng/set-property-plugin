@@ -1,5 +1,6 @@
 package com.hzz;
 
+import com.google.common.collect.Lists;
 import com.intellij.openapi.actionSystem.AnAction;
 import com.intellij.openapi.actionSystem.AnActionEvent;
 import com.intellij.openapi.actionSystem.LangDataKeys;
@@ -20,8 +21,8 @@ import com.intellij.psi.util.PsiTreeUtil;
 import org.apache.commons.lang.StringUtils;
 import org.apache.commons.lang.exception.ExceptionUtils;
 
-import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Comparator;
 import java.util.List;
 import java.util.Map;
 import java.util.stream.Collectors;
@@ -31,10 +32,13 @@ import java.util.stream.Collectors;
  */
 public class CopyProperty extends AnAction {
 
+    private static final int visibleCount = 5;
+    private static final int maxLength = 100;
+
     @Override
     public void actionPerformed(AnActionEvent e) {
         Project project = e.getData(PlatformDataKeys.PROJECT);
-        SetterDialog sd = new SetterDialog(project, false, new MyGenerateData(project));
+        SetterDialog sd = new SetterDialog(project, false, new String[]{format("", maxLength)}, new MyGenerateData(project));
         sd.show();
         if (sd.isOK()) {
             PsiClass psiClass = getPsiMethodFromContext(e);
@@ -48,6 +52,13 @@ public class CopyProperty extends AnAction {
                 generateConvertMethod(psiClass, sourceCode);
             }
         }
+    }
+
+    protected static String format(String x, int maxLength) {
+        if(x.length() > maxLength) {
+            x = x.substring(0, maxLength);
+        }
+        return String.format("%-" + maxLength + "s", x);
     }
 
     static class MyGenerateData implements GenerateData {
@@ -69,34 +80,31 @@ public class CopyProperty extends AnAction {
                     return arr;
                 }
             } else {
-                PsiClass[] classes = PsiShortNamesCache.getInstance(project).getClassesByName(from, GlobalSearchScope.allScope(project));
-                if (classes.length > 0) {
-                    String[] arr = new String[classes.length + 1];
-                    for (int i = 0; i < classes.length; i++) {
-                        arr[i] = classes[i].getQualifiedName();
-                    }
-                    arr[classes.length] = "from short name";
-                    return arr;
+                List<String> classNames = getQualifiedNamesIfExist(project, visibleCount, from);
+                if (classNames.size() > 0) {
+                    return classNames.toArray(new String[0]);
                 }
             }
 
-            List<String> list = new ArrayList<>();
             String[] allClasses = PsiShortNamesCache.getInstance(project).getAllClassNames();
-            for (String s : allClasses) {
-                if (s.startsWith(from)) {
-                    list.add(s);
-                    if (list.size() > 5) {
-                        break;
-                    }
-                }
-            }
-            String[] arr = new String[list.size() + 1];
-            for (int i = 0; i < list.size(); i++) {
-                arr[i] = list.get(i);
-            }
-            arr[list.size()] = "search";
-            return arr;
+            List<String> matchedClasses = Arrays.stream(allClasses).filter(x -> x.indexOf('.') == -1).filter(x -> x.startsWith(from))
+                    .sorted(Comparator.comparing(String::length)).collect(Collectors.toList());
+            matchedClasses = getQualifiedNamesIfExist(project, visibleCount, matchedClasses.toArray(new String[0]));
+            matchedClasses = matchedClasses.subList(0, Math.min(matchedClasses.size(), visibleCount)).stream().map(x->format(x, maxLength)).collect(Collectors.toList());
+            return matchedClasses.toArray(new String[0]);
         }
+    }
+
+    protected static List<String> getQualifiedNamesIfExist(Project project, int maxCount, String... names) {
+        List<String> list = Lists.newArrayList();
+        for (String s : names) {
+            PsiClass[] classes = PsiShortNamesCache.getInstance(project).getClassesByName(s, GlobalSearchScope.allScope(project));
+            list.addAll(Arrays.stream(classes).map(x -> x.getQualifiedName()).collect(Collectors.toList()));
+            if (list.size() >= maxCount) {
+                break;
+            }
+        }
+        return list;
     }
 
 

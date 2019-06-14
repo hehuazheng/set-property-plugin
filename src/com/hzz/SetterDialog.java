@@ -3,6 +3,7 @@ package com.hzz;
 import com.intellij.openapi.project.Project;
 import com.intellij.openapi.ui.DialogWrapper;
 import com.intellij.ui.components.JBList;
+import com.intellij.ui.components.JBTextField;
 import org.jetbrains.annotations.Nullable;
 
 import javax.swing.*;
@@ -18,7 +19,17 @@ import java.awt.event.MouseEvent;
  * @author: hezz
  */
 public class SetterDialog extends DialogWrapper {
-    protected SetterDialog(@Nullable Project project, boolean canBeParent, GenerateData generateData) {
+    private GenerateData generateData;
+    private boolean fromTextFieldActivated = true;
+
+    private final JBTextField tf1 = new JBTextField(20);
+    private final JBTextField tf2 = new JBTextField(20);
+    private final JBList jlist = new JBList();
+
+    private String text1;
+    private String text2;
+
+    protected SetterDialog(@Nullable Project project, boolean canBeParent, String[] defaultData, GenerateData generateData) {
         super(project, canBeParent);
         init();
         this.generateData = generateData;
@@ -38,9 +49,8 @@ public class SetterDialog extends DialogWrapper {
         tf1.getDocument().addDocumentListener(new MyDocumentListener(tf1));
         tf2.getDocument().addDocumentListener(new MyDocumentListener(tf2));
 
-        jlist.setVisibleRowCount(10);
-        jlist.setPreferredSize(new Dimension(200, 100));
-        jlist.setListData(new String[]{"a","b","c","d"});
+        jlist.setExpandableItemsEnabled(false);
+        jlist.setListData(defaultData);
         jlist.addMouseListener(new MouseAdapter() {
             @Override
             public void mouseClicked(MouseEvent e) {
@@ -54,17 +64,8 @@ public class SetterDialog extends DialogWrapper {
                 }
             }
         });
+        this.setResizable(false);
     }
-
-    private GenerateData generateData;
-    private boolean fromTextFieldActivated = true;
-
-    private final JTextField tf1 = new JTextField(20);
-    private final JTextField tf2 = new JTextField(20);
-    private final JBList jlist = new JBList();
-
-    private String text1;
-    private String text2;
 
     @Nullable
     @Override
@@ -85,12 +86,10 @@ public class SetterDialog extends DialogWrapper {
 
         b1.add(r2);
 
-        JLabel label3 = new JLabel("Classes");
-        b1.add(label3);
-
         b1.add(jlist);
 
         p.add(b1);
+        p.setMaximumSize(new Dimension(300, 200));
         return p;
     }
 
