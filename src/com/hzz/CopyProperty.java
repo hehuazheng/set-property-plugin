@@ -5,16 +5,20 @@ import com.intellij.openapi.actionSystem.AnAction;
 import com.intellij.openapi.actionSystem.AnActionEvent;
 import com.intellij.openapi.actionSystem.LangDataKeys;
 import com.intellij.openapi.actionSystem.PlatformDataKeys;
+import com.intellij.openapi.command.WriteCommandAction;
 import com.intellij.openapi.command.WriteCommandAction.Simple;
 import com.intellij.openapi.editor.Editor;
+import com.intellij.openapi.fileEditor.FileEditor;
 import com.intellij.openapi.project.Project;
 import com.intellij.psi.JavaPsiFacade;
 import com.intellij.psi.PsiClass;
+import com.intellij.psi.PsiDocumentManager;
 import com.intellij.psi.PsiElement;
 import com.intellij.psi.PsiElementFactory;
 import com.intellij.psi.PsiField;
 import com.intellij.psi.PsiFile;
 import com.intellij.psi.PsiMethod;
+import com.intellij.psi.codeStyle.CodeStyleManager;
 import com.intellij.psi.search.GlobalSearchScope;
 import com.intellij.psi.search.PsiShortNamesCache;
 import com.intellij.psi.util.PsiTreeUtil;
@@ -49,7 +53,17 @@ public class CopyProperty extends AnAction {
                 } catch (Exception ex) {
                     sourceCode = ex.getMessage() + "\n" + ExceptionUtils.getStackTrace(ex);
                 }
-                generateConvertMethod(psiClass, sourceCode);
+                Editor editor = e.getData(PlatformDataKeys.EDITOR);
+                int offset = editor.getCaretModel().getOffset();
+                int endOffset = offset + sourceCode.length();
+                final String finalSourceCode = sourceCode;
+                Runnable r = () -> {
+                    editor.getDocument().insertString(offset, finalSourceCode);
+                    PsiFile file = psiClass.getContainingFile();
+                    CodeStyleManager.getInstance(project).reformatText(file, offset, endOffset);
+                    PsiDocumentManager.getInstance(project).commitDocument(editor.getDocument());
+                };
+                WriteCommandAction.runWriteCommandAction(project, r);
             }
         }
     }
@@ -79,7 +93,7 @@ public class CopyProperty extends AnAction {
             } else {
                 List<String> classNames = getQualifiedNamesIfExist(project, visibleCount, from);
                 if (classNames.size() > 0) {
-                    return classNames.stream().map(x->format(x,maxLength)).collect(Collectors.toList()).toArray(new String[0]);
+                    return classNames.stream().map(x -> format(x, maxLength)).collect(Collectors.toList()).toArray(new String[0]);
                 }
             }
 
@@ -87,7 +101,7 @@ public class CopyProperty extends AnAction {
             List<String> matchedClasses = Arrays.stream(allClasses).filter(x -> x.indexOf('.') == -1).filter(x -> x.startsWith(from))
                     .sorted(Comparator.comparing(String::length)).collect(Collectors.toList());
             matchedClasses = getQualifiedNamesIfExist(project, visibleCount, matchedClasses.toArray(new String[0]));
-            matchedClasses = matchedClasses.subList(0, Math.min(matchedClasses.size(), visibleCount)).stream().map(x->format(x, maxLength)).collect(Collectors.toList());
+            matchedClasses = matchedClasses.subList(0, Math.min(matchedClasses.size(), visibleCount)).stream().map(x -> format(x, maxLength)).collect(Collectors.toList());
             return matchedClasses.toArray(new String[0]);
         }
     }
@@ -111,7 +125,9 @@ public class CopyProperty extends AnAction {
         Map<String, PsiField> map = Arrays.stream(fromFields).collect(Collectors.toMap(x -> x.getName(), x -> x));
         PsiField[] toFields = toClazz.getAllFields();
         StringBuilder sb = new StringBuilder();
-        sb.append("public ").append(toClazz.getQualifiedName()).append(" convert(").append(fromClazz.getName()).append(" f) {\n")
+        int lastDotPos = toClazz.getQualifiedName().lastIndexOf('.');
+        String clazzName = toClazz.getQualifiedName().substring(lastDotPos + 1);
+        sb.append("public ").append(clazzName).append(" convert(").append(fromClazz.getName()).append(" f) {\n")
                 .append(toClazz.getName()).append(" t = new ").append(toClazz.getName()).append("();\n");
         for (PsiField f : toFields) {
             String fieldName = f.getName();
@@ -124,16 +140,6 @@ public class CopyProperty extends AnAction {
         }
         sb.append("return t;\n").append("}\n");
         return sb.toString();
-    }
-
-    private void generateConvertMethod(final PsiClass psiMethod, final String body) {
-        if (psiMethod != null && psiMethod.getProject() != null) {
-            (new Simple(psiMethod.getProject(), new PsiFile[]{psiMethod.getContainingFile()}) {
-                protected void run() throws Throwable {
-                    create(psiMethod, body);
-                }
-            }).execute();
-        }
     }
 
     private void create(PsiClass psiClass, String methodText) {
