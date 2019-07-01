@@ -22,15 +22,18 @@ public class SetterDialog extends DialogWrapper {
     private GenerateData generateData;
     private boolean fromTextFieldActivated = true;
 
-    private final JBTextField tf1 = new JBTextField(20);
-    private final JBTextField tf2 = new JBTextField(20);
+    private final JBTextField tf1;
+    private final JBTextField tf2;
     private final JBList jlist = new JBList();
 
     private String text1;
     private String text2;
 
-    protected SetterDialog(@Nullable Project project, boolean canBeParent, String[] defaultData, GenerateData generateData) {
+    protected SetterDialog(@Nullable Project project, boolean canBeParent, int maxLength, GenerateData generateData) {
         super(project, canBeParent);
+        tf1 = new JBTextField(maxLength);
+        tf2 = new JBTextField(maxLength);
+
         init();
         this.generateData = generateData;
         setTitle("convert Dialog");
@@ -50,17 +53,18 @@ public class SetterDialog extends DialogWrapper {
         tf2.getDocument().addDocumentListener(new MyDocumentListener(tf2));
 
         jlist.setExpandableItemsEnabled(false);
-        jlist.setListData(defaultData);
+        jlist.setListData(new String[0]);
         jlist.addMouseListener(new MouseAdapter() {
             @Override
             public void mouseClicked(MouseEvent e) {
                 if (e.getClickCount() == 2) {
                     JBList source = (JBList) e.getSource();
                     if (fromTextFieldActivated) {
-                        tf1.setText(source.getSelectedValue().toString());
+                        tf1.setText(source.getSelectedValue().toString().trim());
                     } else {
-                        tf2.setText(source.getSelectedValue().toString());
+                        tf2.setText(source.getSelectedValue().toString().trim());
                     }
+                    source.setListData(new String[0]);
                 }
             }
         });
@@ -72,7 +76,7 @@ public class SetterDialog extends DialogWrapper {
     protected JComponent createCenterPanel() {
         JPanel p = new JPanel();
         Box b1 = Box.createVerticalBox();
-
+        b1.setAlignmentX(Component.LEFT_ALIGNMENT);
         Box r1 = Box.createHorizontalBox();
         JLabel label = new JLabel("From");
         r1.add(label);
@@ -83,14 +87,21 @@ public class SetterDialog extends DialogWrapper {
         JLabel label2 = new JLabel("To");
         r2.add(label2);
         r2.add(tf2);
-
         b1.add(r2);
 
-        b1.add(jlist);
+        Box r3  = Box.createHorizontalBox();
+        r3.add(jlist);
+        b1.add(r3);
 
         p.add(b1);
         p.setMaximumSize(new Dimension(300, 200));
         return p;
+    }
+
+    // get focus
+    @Nullable
+    public JComponent getPreferredFocusedComponent() {
+        return tf1;
     }
 
     class MyDocumentListener implements DocumentListener {
@@ -116,7 +127,7 @@ public class SetterDialog extends DialogWrapper {
         }
 
         protected void setData(String s) {
-            if(fromTextFieldActivated) {
+            if (fromTextFieldActivated) {
                 jlist.setListData(generateData.getData(s));
             } else {
                 jlist.setListData(generateData.getData(s));

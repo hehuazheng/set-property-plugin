@@ -33,12 +33,12 @@ import java.util.stream.Collectors;
 public class CopyProperty extends AnAction {
 
     private static final int visibleCount = 5;
-    private static final int maxLength = 100;
+    private static final int maxLength = 50;
 
     @Override
     public void actionPerformed(AnActionEvent e) {
         Project project = e.getData(PlatformDataKeys.PROJECT);
-        SetterDialog sd = new SetterDialog(project, false, new String[]{format("", maxLength)}, new MyGenerateData(project));
+        SetterDialog sd = new SetterDialog(project, false, maxLength, new MyGenerateData(project));
         sd.show();
         if (sd.isOK()) {
             PsiClass psiClass = getPsiMethodFromContext(e);
@@ -55,9 +55,6 @@ public class CopyProperty extends AnAction {
     }
 
     protected static String format(String x, int maxLength) {
-        if(x.length() > maxLength) {
-            x = x.substring(0, maxLength);
-        }
         return String.format("%-" + maxLength + "s", x);
     }
 
@@ -75,14 +72,14 @@ public class CopyProperty extends AnAction {
                 if (classes.length > 0) {
                     String[] arr = new String[classes.length];
                     for (int i = 0; i < classes.length; i++) {
-                        arr[i] = classes[i].getQualifiedName();
+                        arr[i] = format(classes[i].getQualifiedName(), maxLength);
                     }
                     return arr;
                 }
             } else {
                 List<String> classNames = getQualifiedNamesIfExist(project, visibleCount, from);
                 if (classNames.size() > 0) {
-                    return classNames.toArray(new String[0]);
+                    return classNames.stream().map(x->format(x,maxLength)).collect(Collectors.toList()).toArray(new String[0]);
                 }
             }
 
@@ -107,7 +104,6 @@ public class CopyProperty extends AnAction {
         return list;
     }
 
-
     protected String generateConvertCode(Project project, String from, String to) {
         PsiClass fromClazz = JavaPsiFacade.getInstance(project).findClass(from, GlobalSearchScope.allScope(project));
         PsiClass toClazz = JavaPsiFacade.getInstance(project).findClass(to, GlobalSearchScope.allScope(project));
@@ -122,6 +118,8 @@ public class CopyProperty extends AnAction {
             if (map.containsKey(fieldName)) {
                 String fieldNameInMethod = Character.toUpperCase(fieldName.charAt(0)) + fieldName.substring(1);
                 sb.append("t.set").append(fieldNameInMethod).append("(f.get").append(fieldNameInMethod).append("());\n");
+            } else {
+                sb.append("// ").append(fieldName).append("\n");
             }
         }
         sb.append("return t;\n").append("}\n");
