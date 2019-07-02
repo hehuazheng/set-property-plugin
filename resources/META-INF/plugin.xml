@@ -34,4 +34,14 @@
     </action>
   </actions>
 
+  <extensions defaultExtensionNs="com.intellij">
+    <!-- configurable extension -->
+<!--    <applicationConfigurable instance="com.hzz.MyService$AppConfigurable"/>-->
+<!--    <projectConfigurable instance="com.hzz.MyService$PrjConfigurable"/>-->
+<!--    &lt;!&ndash; service for the settings &ndash;&gt;-->
+<!--    <applicationService serviceImplementation="com.hzz.MyService$AppSettings"/>-->
+<!--    <projectService serviceImplementation="com.hzz.MyService$PrjSettings"/>-->
+    <projectConfigurable groupId="tools" displayName="hezz's converter Plugin" id="preferences.ConverterConfigurable" instance="com.hzz.ConverterConfigurable" />
+    <projectService serviceInterface="com.hzz.ConverterConfig" serviceImplementation="com.hzz.ConverterConfig"/>
+  </extensions>
 </idea-plugin>

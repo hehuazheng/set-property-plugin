@@ -89,7 +89,7 @@ public class SetterDialog extends DialogWrapper {
         r2.add(tf2);
         b1.add(r2);
 
-        Box r3  = Box.createHorizontalBox();
+        Box r3 = Box.createHorizontalBox();
         r3.add(jlist);
         b1.add(r3);
 
@@ -127,11 +127,7 @@ public class SetterDialog extends DialogWrapper {
         }
 
         protected void setData(String s) {
-            if (fromTextFieldActivated) {
-                jlist.setListData(generateData.getData(s));
-            } else {
-                jlist.setListData(generateData.getData(s));
-            }
+            jlist.setListData(generateData.getData(s));
         }
     }
 

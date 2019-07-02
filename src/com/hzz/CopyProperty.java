@@ -6,9 +6,7 @@ import com.intellij.openapi.actionSystem.AnActionEvent;
 import com.intellij.openapi.actionSystem.LangDataKeys;
 import com.intellij.openapi.actionSystem.PlatformDataKeys;
 import com.intellij.openapi.command.WriteCommandAction;
-import com.intellij.openapi.command.WriteCommandAction.Simple;
 import com.intellij.openapi.editor.Editor;
-import com.intellij.openapi.fileEditor.FileEditor;
 import com.intellij.openapi.project.Project;
 import com.intellij.psi.JavaPsiFacade;
 import com.intellij.psi.PsiClass;
@@ -22,6 +20,7 @@ import com.intellij.psi.codeStyle.CodeStyleManager;
 import com.intellij.psi.search.GlobalSearchScope;
 import com.intellij.psi.search.PsiShortNamesCache;
 import com.intellij.psi.util.PsiTreeUtil;
+import org.apache.commons.collections.CollectionUtils;
 import org.apache.commons.lang.StringUtils;
 import org.apache.commons.lang.exception.ExceptionUtils;
 
@@ -42,7 +41,8 @@ public class CopyProperty extends AnAction {
     @Override
     public void actionPerformed(AnActionEvent e) {
         Project project = e.getData(PlatformDataKeys.PROJECT);
-        SetterDialog sd = new SetterDialog(project, false, maxLength, new MyGenerateData(project));
+        ConverterConfig config = ConverterConfig.getInstance(project);
+        SetterDialog sd = new SetterDialog(project, false, maxLength, new MyGenerateData(project, config.value));
         sd.show();
         if (sd.isOK()) {
             PsiClass psiClass = getPsiMethodFromContext(e);
@@ -53,10 +53,12 @@ public class CopyProperty extends AnAction {
                 } catch (Exception ex) {
                     sourceCode = ex.getMessage() + "\n" + ExceptionUtils.getStackTrace(ex);
                 }
+
+
                 Editor editor = e.getData(PlatformDataKeys.EDITOR);
                 int offset = editor.getCaretModel().getOffset();
-                int endOffset = offset + sourceCode.length();
                 final String finalSourceCode = sourceCode;
+                int endOffset = offset + finalSourceCode.length();
                 Runnable r = () -> {
                     editor.getDocument().insertString(offset, finalSourceCode);
                     PsiFile file = psiClass.getContainingFile();
@@ -74,9 +76,11 @@ public class CopyProperty extends AnAction {
 
     static class MyGenerateData implements GenerateData {
         private Project project;
+        private String includes;
 
-        public MyGenerateData(Project project) {
+        public MyGenerateData(Project project, String includes) {
             this.project = project;
+            this.includes = includes;
         }
 
         @Override
@@ -101,6 +105,17 @@ public class CopyProperty extends AnAction {
             List<String> matchedClasses = Arrays.stream(allClasses).filter(x -> x.indexOf('.') == -1).filter(x -> x.startsWith(from))
                     .sorted(Comparator.comparing(String::length)).collect(Collectors.toList());
             matchedClasses = getQualifiedNamesIfExist(project, visibleCount, matchedClasses.toArray(new String[0]));
+            if(StringUtils.isNotEmpty(includes) && CollectionUtils.isNotEmpty(matchedClasses)) {
+                List<String> includePrefixes = Arrays.stream(includes.split(",")).map(x->x.trim()).filter(x->StringUtils.isNotEmpty(x)).collect(Collectors.toList());
+                matchedClasses = matchedClasses.stream().filter(x-> {
+                    for(String s : includePrefixes) {
+                        if(x.startsWith(s)) {
+                            return true;
+                        }
+                    }
+                    return false;
+                }).collect(Collectors.toList());
+            }
             matchedClasses = matchedClasses.subList(0, Math.min(matchedClasses.size(), visibleCount)).stream().map(x -> format(x, maxLength)).collect(Collectors.toList());
             return matchedClasses.toArray(new String[0]);
         }
